@@ -4,6 +4,7 @@ import argparse
 import csv
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 import random
 import re
@@ -63,6 +64,46 @@ def utc_now_iso() -> str:
 def quote_sheet_title(title: str) -> str:
     """A1 notation sheet-title quoting."""
     return "'" + title.replace("'", "''") + "'"
+
+
+# ----------------------------
+# Logging
+# ----------------------------
+
+def setup_logging(log_path: Path) -> None:
+    """
+    Log to both console and a rotating UTF-8 log file.
+
+    Rotation policy:
+      - current file: sheet_watcher.log
+      - rotate at ~5 MiB
+      - keep 5 backups
+    """
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(message)s"
+    )
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    # Avoid duplicate handlers if setup_logging is ever called twice.
+    root_logger.handlers.clear()
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
+    file_handler = RotatingFileHandler(
+        log_path,
+        maxBytes=5 * 1024 * 1024,
+        backupCount=5,
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(formatter)
+
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
 
 
 # ----------------------------
@@ -794,6 +835,15 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--log",
+        default="logs/sheet_watcher.log",
+        help=(
+            "日志文件路径，默认 ./logs/sheet_watcher.log；"
+            "日志约 5 MiB 自动轮换并保留 5 份历史"
+        ),
+    )
+
+    parser.add_argument(
         "--proxy",
         default=DEFAULT_PROXY,
         help=(
@@ -858,10 +908,10 @@ def resolve_targets(drive, args) -> list[dict[str, Any]]:
 def main() -> int:
     args = parse_args()
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s | %(levelname)s | %(message)s",
-    )
+    log_path = Path(args.log).resolve()
+    setup_logging(log_path)
+
+    logging.info("日志文件：%s", log_path)
 
     proxy_url = args.proxy.strip() or None
     configure_proxy_environment(proxy_url)
