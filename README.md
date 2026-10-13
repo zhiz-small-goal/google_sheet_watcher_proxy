@@ -49,7 +49,8 @@ logs/
 └── sheet_watcher.log
 ```
 
-同时终端仍然显示日志。
+默认同时在终端显示日志。使用 `--quiet` 时只写入日志文件，适合配合
+`pythonw.exe` 在后台运行。
 
 日志轮换策略：
 
@@ -71,26 +72,36 @@ python sheet_watcher.py --all --owned-only --log "D:\Logs\sheet_watcher.log"
 
 ---
 
+## 静默后台启动
+
+双击项目根目录的 `start_silent.vbs`，程序会使用虚拟环境中的
+`.venv\Scripts\pythonw.exe` 启动，并在后台运行，不显示控制台窗口。
+日志仍写入 `logs/sheet_watcher.log`。关闭程序可在任务管理器中结束
+`pythonw.exe` 进程。
+
+需要更改监控参数时，编辑 `start_silent.vbs` 中传给 `sheet_watcher.py` 的参数。
+手动调试仍可使用下方的 `python.exe` 命令，此时日志也会显示在终端。
+
 ## 开机 / 登录自启推荐参数
 
 Windows 任务计划程序中：
 
-程序：
+程序或脚本（直接运行）：
 
 ```text
-E:\downld\google_sheet_watcher\.venv\Scripts\python.exe
+项目目录\.venv\Scripts\pythonw.exe
 ```
 
 参数：
 
 ```text
-"E:\downld\google_sheet_watcher\sheet_watcher.py" --all --owned-only
+"项目目录\sheet_watcher.py" --all --owned-only --quiet
 ```
 
 起始于：
 
 ```text
-E:\downld\google_sheet_watcher
+项目目录
 ```
 
 这样即使没有终端窗口，也可以直接检查：

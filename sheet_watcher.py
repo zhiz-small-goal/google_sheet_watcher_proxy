@@ -70,9 +70,9 @@ def quote_sheet_title(title: str) -> str:
 # Logging
 # ----------------------------
 
-def setup_logging(log_path: Path) -> None:
+def setup_logging(log_path: Path, console: bool = True) -> None:
     """
-    Log to both console and a rotating UTF-8 log file.
+    Log to a rotating UTF-8 file and optionally to the console.
 
     Rotation policy:
       - current file: sheet_watcher.log
@@ -91,9 +91,6 @@ def setup_logging(log_path: Path) -> None:
     # Avoid duplicate handlers if setup_logging is ever called twice.
     root_logger.handlers.clear()
 
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-
     file_handler = RotatingFileHandler(
         log_path,
         maxBytes=5 * 1024 * 1024,
@@ -102,7 +99,10 @@ def setup_logging(log_path: Path) -> None:
     )
     file_handler.setFormatter(formatter)
 
-    root_logger.addHandler(console_handler)
+    if console:
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
 
 
@@ -844,6 +844,12 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="不向终端输出日志（适用于 pythonw.exe 后台运行）",
+    )
+
+    parser.add_argument(
         "--proxy",
         default=DEFAULT_PROXY,
         help=(
@@ -909,7 +915,7 @@ def main() -> int:
     args = parse_args()
 
     log_path = Path(args.log).resolve()
-    setup_logging(log_path)
+    setup_logging(log_path, console=not args.quiet)
 
     logging.info("日志文件：%s", log_path)
 
